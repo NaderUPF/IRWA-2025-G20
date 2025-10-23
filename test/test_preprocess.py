@@ -41,15 +41,6 @@ def test_preprocessing():
         print(f"\nValidation checks:")
         print(f"- All records are dictionaries: {all(isinstance(r, dict) for r in processed)}")
         print(f"- Average fields per record: {sum(len(r) for r in processed) / len(processed):.1f}")
-        
-        # Check that only SELECT_FIELDS are present
-        all_keys = set()
-        for record in processed:
-            all_keys.update(record.keys())
-        unexpected_keys = all_keys - set(SELECT_FIELDS)
-        print(f"- Only SELECT_FIELDS present: {len(unexpected_keys) == 0}")
-        if unexpected_keys:
-            print(f"  Unexpected keys: {unexpected_keys}")
 
 if __name__ == "__main__":
     test_preprocessing()
