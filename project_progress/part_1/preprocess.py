@@ -37,6 +37,9 @@ SELECT_FIELDS = (
     "url",
 )
 
+# Define which fields should be cleaned and tokenized
+TEXT_FIELDS_TO_CLEAN = ("title", "description", "brand", "category", "sub_category", "product_details", "seller")
+
 
 def _clean_text(text: str) -> str:
     text = text.lower()
@@ -60,20 +63,30 @@ def clean_and_tokenize(text: str) -> tuple:
     return tokens, " ".join(tokens)
 
 
-def preprocess_record(rec: dict, text_fields: tuple = ("title", "description")) -> dict:
+def preprocess_record(rec: dict) -> dict:
     """
     Build processed record containing only the requested SELECT_FIELDS (if present).
+    Clean and tokenize text fields.
     """
     out: dict = {}
+    
     # include only the selected fields if they exist in the source record
     for field in SELECT_FIELDS:
         if field in rec:
-            out[field] = rec[field]
-
+            # For text fields, clean and tokenize
+            if field in TEXT_FIELDS_TO_CLEAN and rec[field]:
+                tokens, cleaned_text = clean_and_tokenize(str(rec[field]))
+                # Store both the cleaned text and tokens
+                out[field] = cleaned_text
+                out[f"{field}_tokens"] = tokens
+            else:
+                # For non-text fields, copy as-is
+                out[field] = rec[field]
+    
     return out
 
 
-def preprocess_file(input_path: str, output_path: str, text_fields: tuple = ("title", "description")) -> None:
+def preprocess_file(input_path: str, output_path: str) -> None:
     with open(input_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -86,7 +99,14 @@ def preprocess_file(input_path: str, output_path: str, text_fields: tuple = ("ti
     else:
         records = []
 
-    processed = [preprocess_record(r, text_fields=text_fields) for r in records]
+    # Only process records that have at least one of the SELECT_FIELDS
+    filtered_records = []
+    for record in records:
+        if any(field in record for field in SELECT_FIELDS):
+            filtered_records.append(record)
+    
+
+    processed = [preprocess_record(r) for r in filtered_records]
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
@@ -96,7 +116,7 @@ def preprocess_file(input_path: str, output_path: str, text_fields: tuple = ("ti
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Preprocess fashion product JSON (title, description).")
+    parser = argparse.ArgumentParser(description="Preprocess fashion product JSON.")
     parser.add_argument("-i", "--input", required=True, help="Path to input JSON (fashion_products_dataset.json)")
     parser.add_argument("-o", "--output", default="processed_fashion.json", help="Output JSON path")
     args = parser.parse_args()
