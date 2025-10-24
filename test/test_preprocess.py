@@ -34,13 +34,6 @@ def test_preprocessing():
                 if isinstance(value, str) and len(value) > 100:
                     value = value[:100] + "..."
                 print(f"  {field}: {value}")
-        
-        print(f"\nTotal records processed: {len(processed)}")
-        
-        # Additional validation
-        print(f"\nValidation checks:")
-        print(f"- All records are dictionaries: {all(isinstance(r, dict) for r in processed)}")
-        print(f"- Average fields per record: {sum(len(r) for r in processed) / len(processed):.1f}")
 
 if __name__ == "__main__":
     test_preprocessing()
