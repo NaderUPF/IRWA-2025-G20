@@ -1,0 +1,3 @@
+Five test queries were defined to evaluate the system.  
+They were selected based on term frequency statistics and represent realistic e-commerce search intents.  
+The chosen queries cover both gender-specific apparel and general product types to test term co-occurrence and relevance in the index.
