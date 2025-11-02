@@ -110,20 +110,138 @@ Enjoy!
 
 ### Part 1: Data Preprocessing & Exploratory Data Analysis
 
-The processed records were saved into `processed_fashion.json`.
+This part implements text preprocessing (cleaning, tokenization, stemming) and exploratory data analysis on the fashion product dataset.
 
-A test script (`test_preprocess.py`) was used to validate the result. To execute it:
+#### Running Preprocessing
 
-1. Go to the test folder: `../IRWA-2025-G20/test/`
-2. Execute the following command: `python test_preprocess.py`
+To preprocess the raw dataset:
 
-The exploratory data analysis was performed using Jupyter Notebook. To view and run the analysis:
+```bash
+cd project_progress/part_1
+python preprocess.py -i ../../data/fashion_products_dataset.json -o ../../data/processed_fashion.json
+```
 
-1. Navigate to the project progress folder: `cd project_progress/part_1/`
-2. Open the Jupyter Notebook: `jupyter notebook analysis.ipynb`
-3. Run all cells sequentially to reproduce the analysis results
+This will:
 
-### Search Engine Features
+- Load the raw fashion products dataset
+- Clean text (lowercase, remove HTML tags, remove punctuation, normalize whitespace)
+- Tokenize and stem text fields (title, description, product_details)
+- Remove stopwords from tokenized fields
+- Convert numeric fields (prices, ratings) to proper numeric types
+- Save processed data to `data/processed_fashion.json`
+
+#### Testing Preprocessing
+
+To validate the preprocessing results:
+
+```bash
+cd test
+python test_preprocess.py
+```
+
+This will:
+
+- Load the processed dataset
+- Verify all required fields are present
+- Check data types and formats
+- Display sample processed records
+
+#### Exploratory Data Analysis
+
+To view and run the data analysis:
+
+```bash
+cd project_progress/part_1
+jupyter notebook analysis.ipynb
+```
+
+This notebook includes:
+
+- Dataset statistics and distribution analysis
+- Text field analysis (word frequencies, common terms)
+- Category and brand distribution
+- Price and rating analysis
+- Visualization of key insights
+
+**Key Components:**
+
+- `project_progress/part_1/preprocess.py` - Text preprocessing implementation
+- `project_progress/part_1/analysis.ipynb` - Jupyter notebook with EDA
+- `test/test_preprocess.py` - Preprocessing validation script
+
+### Part 2: Indexing, Search, and Evaluation
+
+This part implements an inverted index, TF-IDF ranking, and comprehensive evaluation metrics for the search system.
+
+#### Building the Index
+
+To build the inverted index from the preprocessed data:
+
+```bash
+cd test
+python test_indexing.py
+```
+
+This will:
+
+- Load the preprocessed documents from `data/processed_fashion.json`
+- Build the inverted index with stemmed terms
+- Compute TF-IDF weights for all documents
+- Save the index to `data/inverted_index.json`
+- Test search functionality with sample queries
+
+#### Running Evaluation
+
+To evaluate the search system with validation queries:
+
+```bash
+cd test
+python test_evaluation.py
+```
+
+This will:
+
+- Load ground truth labels from `data/validation_labels.csv`
+- Run the validation queries through the search system
+- Compute all evaluation metrics (P@K, R@K, F1@K, AP@K, MAP, MRR, NDCG@K)
+- Display detailed results including top-ranked documents and metric scores
+
+**Evaluation Metrics Computed:**
+
+- **Precision@K (P@K)**: Proportion of relevant documents in top K results
+- **Recall@K (R@K)**: Proportion of all relevant documents found in top K
+- **F1-Score@K**: Harmonic mean of precision and recall
+- **Average Precision@K (AP@K)**: Precision averaged at positions of relevant documents
+- **Mean Average Precision (MAP)**: Overall system quality across all queries
+- **Mean Reciprocal Rank (MRR)**: Average position of first relevant result
+- **NDCG@K**: Normalized Discounted Cumulative Gain for ranking quality
+
+**Output Format:**
+
+```
+Query 1: 'women full sleeve sweatshirt cotton'
+   Top 10 Results:
+   1. [✓] Full Sleeve Printed Women Sweatshirt
+      Score: 3.4699
+   ...
+   
+   @ K=5:
+      Precision@5  : 0.000
+      Recall@5     : 0.000
+      F1-Score@5   : 0.000
+      AP@5         : 0.000
+      RR@5         : 0.000
+      NDCG@5       : 0.000
+```
+
+**Key Components:**
+
+- `project_progress/part_2/indexing.py` - Inverted index and TF-IDF ranking implementation
+- `project_progress/part_2/evaluation.py` - All evaluation metrics implementation
+- `test/test_indexing.py` - Index building and search testing
+- `test/test_evaluation.py` - Comprehensive evaluation script
+
+## Search Engine Features
 
 To use the search engine with different ranking algorithms:
 
