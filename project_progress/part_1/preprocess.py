@@ -62,11 +62,16 @@ def _tokenize_and_normalize(cleaned: str) -> list:
 
 
 def clean_and_tokenize(text: str) -> tuple:
+    """
+    Returns (stemmed_tokens, cleaned_text)
+    - stemmed_tokens: list of stemmed and normalized tokens
+    - cleaned_text: cleaned but unstemmed text
+    """
     if not text:
         return [], ""
-    cleaned = _clean_text(text)
-    tokens = _tokenize_and_normalize(cleaned)
-    return tokens, " ".join(tokens)
+    cleaned = _clean_text(text)  # just clean, don't stem
+    tokens = _tokenize_and_normalize(cleaned)  # get stemmed tokens
+    return tokens, cleaned  # return stemmed tokens and cleaned (but unstemmed) text
 
 
 def clean_only(text: str) -> str:

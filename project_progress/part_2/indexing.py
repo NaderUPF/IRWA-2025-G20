@@ -17,18 +17,16 @@ import math                # para logaritmos y cálculos de IDF
 import os                  # para manejo de rutas y creación de carpetas
 from collections import defaultdict, Counter  # para contar y construir índices
 from typing import Dict, List, Tuple           # para anotaciones de tipos
-from array import array
-
-
-# Test Queries for the exercise 2
-TEST_QUERIES = [
-    "women full sleeve sweatshirt cotton",
-    "men slim fit jeans blue",
-    "wireless bluetooth headphones",
-    "leather wallet brown",
-    "running shoes lightweight"
-]
-
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from project_progress.part_1.preprocess import _clean_text, _tokenize_and_normalize  # para limpiar y normalizar
+from project_progress.part_1.preprocess import _clean_text  # para limpiar el texto
+import nltk
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 
 def load_processed_json(path):
@@ -41,80 +39,40 @@ def load_processed_json(path):
         return json.load(f)
 
 
-
-
-
 def create_index(docs):
     """
     Implement the inverted index
 
     Argument:
-    lines -- collection of Wikipedia articles
+    docs -- collection of preprocessed documents
 
     Returns:
-    index - the inverted index (implemented through a Python dictionary) containing terms as keys and the corresponding
-    list of documents where these keys appears in (and the positions) as values.
+    index - the inverted index containing terms as keys and lists of document IDs as values
+    pid_to_title - mapping of product IDs to titles (for result display)
     """
-    index = defaultdict(list)
-    pid_to_title = {}  # dictionary to map page titles to page ids
+    index = defaultdict(set)  # Using set to avoid duplicate document IDs
+    pid_to_title = {}
 
-    for doc in docs:  # Remember, lines contain all documents from file
+    for doc in docs:
         pid = doc.get("pid")
         if not pid:
             continue
 
-        # Combinar tokens de todos los campos relevantes (title + description + details)
-        tokens = []
-        for field in ("title_tokens", "description_tokens", "product_details_tokens"):
-            if field in doc:
-                tokens.extend(doc[field])
-
-        # Guardar el título asociado al pid
+        # Store title for result display
         pid_to_title[pid] = doc.get("title", f"product_{pid}")
 
-        # Índice temporal para el documento actual
-        current_doc_index = {}
+        # Process all fields using tokenized text (with stopwords removed)
+        terms = []
+        for field in ("title_tokens", "description_tokens", "product_details_tokens"):
+            if field in doc:
+                terms.extend(doc[field])
 
-        # Enumerar posiciones de términos
-        for pos, term in enumerate(tokens):
-            if term in current_doc_index:
-                current_doc_index[term][1].append(pos)
-            else:
-                # 'I' = unsigned int array
-                current_doc_index[term] = [pid, array('I', [pos])]
+        # Add document ID to each unstemmed term's posting list
+        for term in set(terms):  # Using set to process each term once per document
+            index[term].add(pid)
 
-        # Fusionar el índice del documento con el índice global
-        for term, posting in current_doc_index.items():
-            index[term].append(posting)
-
-    return index, pid_to_title
-
-
-
-
-
-
-def build_vocabulary(index):
-    """
-    Build the vocabulary data structure from the inverted index
-
-    Args: index(dict): the inverted index
-
-    Returns:
-        Vocabulary(dict): Contains:
-            - term_id: numeric identifier
-            - df: document frequency (number of docs containing the term)
-            - cf: collection frequency (total term ocurrences)
-    
-    """
-    vocabulary = {}
-    for i, (term, postings) in enumerate(index.items(), start=1):
-        df = len(postings)
-        cf = sum(len(p[1]) for p in postings)
-        vocabulary[term] = {"term_id":i, "df":df, "cf": cf}
-
-    return vocabulary
-
+    # Convert sets to lists for JSON serialization
+    return {term: list(docs) for term, docs in index.items()}, pid_to_title
 
 
 def save_json(data, output_path):
@@ -124,13 +82,11 @@ def save_json(data, output_path):
     Args:
         data (dict): Dictionary to be saved
         output_path (str): Destination file path
-    
     """
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     print(f"Saved: {output_path}")
-
 
 
 def compute_tfidf(index, docs):
@@ -170,9 +126,11 @@ def compute_tfidf(index, docs):
     return tfidf
 
 
+
+
 def rank_documents(query, tfidf, index):
     """
-    Rank documents for a given query using cosine similarity on TF-IDF weights.
+    Rank documents for a given query using conjunctive (AND) matching and TF-IDF weights.
 
     Args:
         query (str): Query text.
@@ -180,66 +138,34 @@ def rank_documents(query, tfidf, index):
         index (dict): Inverted index for lookup.
 
     Returns:
-        List of (doc_id, score) tuples sorted by descending score.
+        List of (doc_id, score) tuples sorted by descending score, only including
+        documents that contain ALL query terms.
     """
-    query_terms = query.lower().split()
-    scores = defaultdict(float)
-
+    # First clean and tokenize the query (this includes stemming)
+    cleaned = _clean_text(query)
+    query_terms = _tokenize_and_normalize(cleaned)
+    
+    # Find documents containing all query terms (AND operation)
+    matching_docs = set()
+    first = True
     for term in query_terms:
-        postings = index.get(term, [])
-        for pid, _ in postings:
+        if term not in index:
+            return []  # If any term is missing, no documents match
+        
+        # Get document IDs for this term
+        docs = set(index[term])
+        if first:
+            matching_docs = docs
+            first = False
+        else:
+            matching_docs &= docs  # Intersection for AND semantics
+    
+    # Calculate scores only for documents containing all terms
+    scores = defaultdict(float)
+    for pid in matching_docs:
+        for term in query_terms:
             if term in tfidf.get(pid, {}):
                 scores[pid] += tfidf[pid][term]
 
     ranked_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return ranked_docs
-
-
-
-
-def main():
-    """
-    Build the inverted index and vocabulary,
-    then rank predefined test queries using the TF-IDF model.
-    """
-    input_path = "data/processed_fashion.json"
-    output_index_path = "data/inverted_index.json"
-    output_vocab_path = "data/vocabulary.json"
-
-    # Load preprocessed dataset
-    docs = load_processed_json(input_path)
-    print(f"Loaded {len(docs)} processed documents.\n")
-
-    # Build inverted index and vocabulary
-    index, pid_to_title = create_index(docs)
-    print(f"Inverted index built with {len(index)} unique terms.\n")
-    vocabulary = build_vocabulary(index)
-    print(f"Vocabulary created with {len(vocabulary)} entries.\n")
-
-    # Save index and vocabulary
-    save_json(index, output_index_path)
-    save_json(vocabulary, output_vocab_path)
-
-    # Compute TF-IDF
-    print("Computing TF-IDF weights...")
-    tfidf = compute_tfidf(index, docs)
-    print("TF-IDF model computed.\n")
-
-    # Rank predefined test queries
-    print("Ranking sample queries using TF-IDF:\n")
-    for q in TEST_QUERIES:
-        ranked = rank_documents(q, tfidf, index)
-        print(f"Query: '{q}'")
-        for pid, score in ranked[:5]:
-            title = pid_to_title.get(pid, "Unknown title")
-            print(f" - {title} (score={score:.4f})")
-        print()
-
-
-
-
-
-# Entry point
-
-if __name__ == "__main__":
-    main()
