@@ -3,13 +3,16 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
+from rank_bm25 import BM25Okapi
+import numpy as np
+from gensim.models import Word2Vec
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from project_progress.part_1.preprocess import _clean_text, _tokenize_and_normalize
 
 
 # ============================================================================
-# 1. TF-IDF with Cosine Similarity (CORRECTED)
+# 1. TF-IDF with Cosine Similarity (CORRECTED FROM PART_2)
 # ============================================================================
 
 def compute_tfidf_vectors(index: Dict, docs: List[Dict]) -> Dict[str, Dict[str, float]]:
@@ -98,10 +101,10 @@ def rank_tfidf_cosine(query: str, tfidf_vectors: Dict, index: Dict, num_docs: in
 # 2. BM25
 # ============================================================================
 
-def compute_bm25_index(docs: List[Dict]) -> Tuple[Dict, Dict, float]:
-    index = defaultdict(list)
-    doc_lengths = {}
-    total_length = 0
+def compute_bm25_index(docs: List[Dict]) -> Tuple[BM25Okapi, Dict]:
+    """Build BM25 index and keep track of doc IDs"""
+    doc_tokens_list = []
+    pid_list = []
     
     for doc in docs:
         pid = doc.get("pid")
@@ -113,59 +116,126 @@ def compute_bm25_index(docs: List[Dict]) -> Tuple[Dict, Dict, float]:
             if field in doc:
                 tokens.extend(doc[field])
         
-        doc_lengths[pid] = len(tokens)
-        total_length += len(tokens)
-        
-        term_freqs = Counter(tokens)
-        for term, freq in term_freqs.items():
-            index[term].append((pid, freq))
+        doc_tokens_list.append(tokens)
+        pid_list.append(pid)
     
-    avg_doc_length = total_length / len(docs) if docs else 0
-    return dict(index), doc_lengths, avg_doc_length
+    bm25 = BM25Okapi(doc_tokens_list)
+    pid_to_index = {pid: i for i, pid in enumerate(pid_list)}
+    
+    return bm25, pid_to_index, pid_list
 
 
-def rank_bm25(query: str, bm25_index: Dict, doc_lengths: Dict, avg_doc_length: float, 
-              num_docs: int, k1: float = 1.5, b: float = 0.75) -> List[Tuple[str, float]]:
-    # k1 controls TF saturation, b controls length normalization
+def rank_bm25(query: str, bm25: BM25Okapi, pid_to_index: Dict, pid_list: List[str]) -> List[Tuple[str, float]]:
     cleaned = _clean_text(query)
     query_terms = _tokenize_and_normalize(cleaned)
     if not query_terms:
         return []
     
-    # AND semantics
-    matching_docs = set()
-    first = True
-    for term in query_terms:
-        if term not in bm25_index:
-            return []
-        docs = set(doc_id for doc_id, _ in bm25_index[term])
-        if first:
-            matching_docs = docs
-            first = False
-        else:
-            matching_docs &= docs
+    # Get BM25 scores for all documents
+    scores = bm25.get_scores(query_terms)
     
-    if not matching_docs:
+    # Create list of (pid, score) tuples
+    results = [(pid_list[i], scores[i]) for i in range(len(pid_list))]
+    
+    # Filter for AND semantics: only keep docs with non-zero scores
+    # (BM25 returns 0 for docs missing query terms)
+    results = [(pid, score) for pid, score in results if score > 0]
+    
+    return sorted(results, key=lambda x: x[1], reverse=True)
+
+
+# ============================================================================
+# 4. Word2Vec + Cosine Similarity
+# ============================================================================
+
+def compute_word2vec_model(docs: List[Dict], vector_size: int = 100, 
+                          window: int = 5, min_count: int = 1) -> Word2Vec:
+    sentences = []
+    for doc in docs:
+        # Combine all token fields
+        tokens = []
+        for field in ("title_tokens", "description_tokens", "product_details_tokens"):
+            if field in doc:
+                tokens.extend(doc[field])
+        
+        if tokens:
+            sentences.append(tokens)
+    
+    if not sentences:
+        # Return empty model if no sentences
+        model = Word2Vec(min_count=min_count, vector_size=vector_size)
+        return model
+    
+    model = Word2Vec(sentences=sentences, vector_size=vector_size, window=window, 
+                     min_count=min_count, workers=4, sg=0, epochs=5)
+    return model
+
+
+def text_to_vector(tokens: List[str], model: Word2Vec) -> np.ndarray:
+    vectors = []
+    for token in tokens:
+        if token in model.wv:
+            vectors.append(model.wv[token])
+    
+    if not vectors:
+        return np.zeros(model.vector_size)
+    
+    return np.mean(vectors, axis=0)
+
+
+def rank_word2vec_cosine(query: str, model: Word2Vec, docs: List[Dict], 
+                         index: Dict) -> List[Tuple[str, float]]:
+    cleaned = _clean_text(query)
+    query_terms = _tokenize_and_normalize(cleaned)
+    if not query_terms:
         return []
     
-    term_doc_freqs = {}
-    for term in query_terms:
-        term_doc_freqs[term] = {doc_id: freq for doc_id, freq in bm25_index[term]}
+    # AND semantics: get candidate docs containing all query terms
+    query_set = set(query_terms)
+    candidate_pids = None
+    for term in query_set:
+        term_pids = set(index.get(term, []))
+        if candidate_pids is None:
+            candidate_pids = term_pids
+        else:
+            candidate_pids &= term_pids
     
-    scores = defaultdict(float)
-    for term in query_terms:
-        df = len(bm25_index[term])
-        idf = math.log((num_docs - df + 0.5) / (df + 0.5) + 1)
+    if not candidate_pids:
+        return []
+    
+    # Compute query vector
+    query_vec = text_to_vector(query_terms, model)
+    if np.linalg.norm(query_vec) == 0:
+        return []
+    
+    # Create doc lookup by pid
+    doc_by_pid = {doc.get("pid"): doc for doc in docs if doc.get("pid")}
+    
+    # Compute cosine similarity for each candidate doc
+    results = []
+    for pid in candidate_pids:
+        doc = doc_by_pid.get(pid)
+        if not doc:
+            continue
         
-        for doc_id in matching_docs:
-            if doc_id in term_doc_freqs[term]:
-                freq = term_doc_freqs[term][doc_id]
-                doc_len = doc_lengths.get(doc_id, 0)
-                numerator = freq * (k1 + 1)
-                denominator = freq + k1 * (1 - b + b * (doc_len / avg_doc_length if avg_doc_length > 0 else 1))
-                scores[doc_id] += idf * (numerator / denominator)
+        # Use same fields as BM25
+        doc_tokens = []
+        for field in ("title_tokens", "description_tokens", "product_details_tokens"):
+            if field in doc:
+                doc_tokens.extend(doc[field])
+        
+        if not doc_tokens:
+            continue
+        
+        doc_vec = text_to_vector(doc_tokens, model)
+        if np.linalg.norm(doc_vec) == 0:
+            continue
+        
+        # Cosine similarity
+        similarity = np.dot(query_vec, doc_vec) / (np.linalg.norm(query_vec) * np.linalg.norm(doc_vec))
+        results.append((pid, similarity))
     
-    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return sorted(results, key=lambda x: x[1], reverse=True)
 
 
 # ============================================================================
