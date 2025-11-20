@@ -224,7 +224,7 @@ Query 1: 'women full sleeve sweatshirt cotton'
    1. [✓] Full Sleeve Printed Women Sweatshirt
       Score: 3.4699
    ...
-   
+
    @ K=5:
       Precision@5  : 0.000
       Recall@5     : 0.000
@@ -240,6 +240,137 @@ Query 1: 'women full sleeve sweatshirt cotton'
 - `project_progress/part_2/evaluation.py` - All evaluation metrics implementation
 - `test/test_indexing.py` - Index building and search testing
 - `test/test_evaluation.py` - Comprehensive evaluation script
+
+### Part 3: Ranking Algorithms
+
+This part implements and compares multiple ranking algorithms including TF-IDF, BM25, Custom Score, Word2Vec, and Sentence2Vec for semantic search.
+
+#### Running Algorithm Comparisons
+
+To compare all 4 ranking algorithms side-by-side:
+
+```bash
+cd project_progress/part_3
+python compare_rankings.py
+```
+
+This will:
+
+- Load the preprocessed documents
+- Build all necessary indices (inverted index, TF-IDF vectors, BM25 index, Word2Vec model, metadata)
+- Run 5 test queries through all 4 algorithms (TF-IDF, BM25, Custom Score, Word2Vec)
+- Display top-20 results for each algorithm in a comparison table
+- Show ranking overlap analysis
+- Display summary of algorithm characteristics
+
+#### Running Word2Vec Ranking Only
+
+To run only the Word2Vec + Cosine Similarity ranking:
+
+```bash
+cd project_progress/part_3
+python word2vec_ranking.py
+```
+
+This will:
+
+- Train Word2Vec model on the product corpus (100-dimensional embeddings)
+- Represent text as averaged word vectors: `(v1 + v2 + ... + vn) ÷ n`
+- Rank documents using cosine similarity between query and document vectors
+- Return top-20 results for each of the 5 queries
+- Display results in a formatted table
+
+#### Running Sentence2Vec Ranking Only
+
+To run only the Sentence2Vec + Cosine Similarity ranking:
+
+```bash
+cd project_progress/part_3
+python sentence2vec_ranking.py
+```
+
+This will:
+
+- Train Sentence2Vec model with sentence boundary markers (`<s>`, `</s>`)
+- Use weighted averaging with inverse frequency weighting (TF-IDF-like)
+- Represent sentences with frequency-weighted word vectors
+- Rank documents using cosine similarity between query and document embeddings
+- Return top-20 results for each of the 5 queries
+- Display results in a formatted table
+
+**Implemented Algorithms:**
+
+1. **TF-IDF + Cosine Similarity** (Corrected from Part 2)
+
+   - Computes TF-IDF weights for documents and queries
+   - Ranks by cosine similarity between query and document vectors
+   - Enforces AND semantics (all query terms must appear in document)
+
+2. **BM25** (using rank-bm25 library)
+
+   - Probabilistic ranking with term frequency saturation
+   - Document length normalization
+   - Industry-standard algorithm (default params: k1=1.5, b=0.75)
+
+3. **Custom Score** (Text + Quality + Value)
+
+   - Combines: 60% text relevance + 25% quality + 15% value
+   - Quality score: product rating × stock availability
+   - Value score: discount percentage
+   - Domain-specific for e-commerce
+
+4. **Word2Vec + Cosine Similarity**
+
+   - Trains Word2Vec embeddings on corpus (100 dimensions)
+   - Represents text as simple averaged word vectors
+   - Ranks by semantic similarity using cosine distance
+   - Captures synonyms and related terms
+
+5. **Sentence2Vec + Cosine Similarity**
+   - Trains with sentence boundary markers for better context
+   - Uses weighted averaging with inverse frequency weighting
+   - Weights rare words higher than common words (TF-IDF-like)
+   - Better sentence-level semantic representation than simple averaging
+
+**Test Queries:**
+
+- "women cotton sweatshirt"
+- "men blue jeans slim fit"
+- "red dress party"
+- "running shoes sports"
+- "leather jacket black"
+
+**Output Format:**
+
+```
+QUERY: 'women cotton sweatshirt'
+========================================================
+
+Top 20 Results:
+
++------+------------------+--------+------------------+--------+------------------+--------+------------------+--------+
+| Rank | TF-IDF+Cosine    | Score  | BM25             | Score  | Custom           | Score  | Word2Vec         | Score  |
++======+==================+========+==================+========+==================+========+==================+========+
+| 1    | Product Title... | 0.8543 | Product Title... | 12.456 | Product Title... | 0.7234 | Product Title... | 0.9123 |
+| ...  | ...              | ...    | ...              | ...    | ...              | ...    | ...              | ...    |
++------+------------------+--------+------------------+--------+------------------+--------+------------------+--------+
+
+Ranking Overlap Analysis (Top 5):
+  TF-IDF ∩ BM25:      4/5 documents
+  TF-IDF ∩ Custom:    3/5 documents
+  TF-IDF ∩ Word2Vec:  2/5 documents
+  BM25 ∩ Custom:      3/5 documents
+  BM25 ∩ Word2Vec:    2/5 documents
+  Custom ∩ Word2Vec:  1/5 documents
+  All Four:           1/5 documents
+```
+
+**Key Components:**
+
+- `project_progress/part_3/ranking_algorithms.py` - Core implementations of TF-IDF, BM25, Custom Score, and Word2Vec algorithms
+- `project_progress/part_3/compare_rankings.py` - Side-by-side comparison tool for all 4 algorithms
+- `project_progress/part_3/word2vec_ranking.py` - Standalone Word2Vec ranking script (simple averaging)
+- `project_progress/part_3/sentence2vec_ranking.py` - Standalone Sentence2Vec ranking script (weighted averaging)
 
 ## Search Engine Features
 
