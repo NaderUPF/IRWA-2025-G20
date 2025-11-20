@@ -169,41 +169,6 @@ def main():
             bm25, pid_to_index, pid_list, doc_metadata,
             word2vec_model, docs, num_docs
         )
-    
-    print("\n" + "=" * 120)
-    print("ANALYSIS SUMMARY")
-    print("=" * 120 + "\n")
-    
-    print("""
-   Key Observations:
-
-1. TF-IDF + Cosine Similarity:
-   ✓ Pros: Simple, interpretable, good baseline
-   ✓ Cons: Treats all term occurrences equally (no saturation)
-   ✓ Best for: Queries where exact term matching is important
-
-2. BM25:
-   ✓ Pros: Term frequency saturation, length normalization, industry standard
-   ✓ Cons: More complex, requires parameter tuning
-   ✓ Best for: Production systems, handles repeated terms well
-
-3. Custom Score (Text + Quality + Value):
-   ✓ Pros: Domain-specific, incorporates product features, user-centric
-   ✓ Cons: More complex, requires weight tuning, domain-specific
-   ✓ Best for: E-commerce where product quality matters
-
-4. Word2Vec + Cosine Similarity:
-   ✓ Pros: Captures semantic similarity, handles synonyms, distributional semantics
-   ✓ Cons: Requires training, sensitive to corpus size, averaging can lose information
-   ✓ Best for: Semantic search, handling query variations
-
-The rankings differ because:
-- TF-IDF/BM25 focus on exact term matching (lexical)
-- Word2Vec captures semantic similarity (distributional)
-- Custom Score balances text relevance with product quality (ratings, discounts)
-    """)
-
-
 
 if __name__ == "__main__":
     main()

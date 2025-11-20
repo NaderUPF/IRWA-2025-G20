@@ -80,38 +80,6 @@ def main():
         summary_data.append([query, len(results)])
     
     print(tabulate(summary_data, headers=["Query", "Total Results"], tablefmt="grid"))
-    
-    print("\n" + "=" * 80)
-    print("HOW WORD2VEC RANKING WORKS")
-    print("=" * 80 + "\n")
-    print("""
-1. TRAINING:
-   - Trains Word2Vec model on all product documents (title + description + details)
-   - Creates dense vector embeddings for each word (100 dimensions)
-   - Captures semantic relationships between words
-
-2. QUERY PROCESSING:
-   - Converts query terms to word vectors
-   - Averages them to create query vector: (v1 + v2 + ... + vn) ÷ n
-
-3. DOCUMENT SCORING:
-   - For each document matching ALL query terms (AND semantics):
-     * Converts document words to vectors
-     * Averages them to create document vector
-     * Computes cosine similarity with query vector
-   - Ranks by similarity score (higher = more similar)
-
-4. ADVANTAGES:
-   ✓ Captures semantic similarity (not just exact matches)
-   ✓ Handles synonyms and related terms
-   ✓ Learns from corpus context
-
-5. LIMITATIONS:
-   ✗ Requires training data
-   ✗ Averaging can lose word order information
-   ✗ Still enforces AND semantics (all terms must appear)
-    """)
-
 
 if __name__ == "__main__":
     main()
