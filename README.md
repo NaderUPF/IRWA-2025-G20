@@ -106,7 +106,43 @@ Enjoy!
 0. Put the data file `fashion_products_dataset.json` in the `data` folder. It will be provided to you by the instructor.
 1. As for Parts 1, 2, and 3 of the project, please use the `project_progress` folder to store your solutions. Each part should contain `.pdf` file with your report and `.ipynb` (Jupyter Notebook) file with your code for solution and `README.md` with explanation of the content and instructions for results reproduction.
 2. For the Part 4, of the project, you should build a web application using Flask that allows users to search through a collection of documents and view analytics about their searches. You should work mailnly in the `web_app.py` file `myapp` and `templates` folders. Feel free to change any code or add new files as needed. The provided code is just a starting point to help you get started quickly.
-3. Make sure to update the `.env` file with your Groq API key (can be found [here](https://groq.com/), the free version is more than enough for our purposes) and any other necessary configurations. IMPORTANT: Do not share your `.env` file publicly as it contains sensitive information. It is included in `.gitignore` to prevent accidental commits. (It should never be included in the repos and appear here only for demonstration purposes).
+3. Make sure to update the `.env` file with your Groq API key (can be found [here](https://groq.com/), the free version is more than enough for our purposes) and any other necessary configurations. IMPORTANT: Do not share your `.env` file publicly as it contains sensitive information. It is included in `.gitignore` to prevent accidental commits. (It should never be included in the repo and appears here only for demonstration purposes).
+
+## Environment variables (.env)
+
+Create a file named `.env` in the project root with the following keys. These are read by `web_app.py`, the search engine loader and the RAG generator:
+
+- `SECRET_KEY`: Flask secret key used to sign session cookies. Example: `SECRET_KEY="a-very-secret-value"`
+- `DEBUG`: Optional (True/False). Example: `DEBUG=True`
+- `SESSION_COOKIE_NAME`: Optional name for the Flask session cookie. Example: `SESSION_COOKIE_NAME="IRWA_SEARCH_ENGINE"`
+- `DATA_FILE_PATH` or `PROCESSED_DATA_PATH`: Path to the processed corpus JSON. Example: `DATA_FILE_PATH="data/processed_fashion.json"`
+- `GROQ_API_KEY`: (required for RAG) Your Groq API key. Example: `GROQ*API_KEY="gsk*..."
+- `GROQ_MODEL`: (optional) Model name to use with Groq. Example: `GROQ_MODEL="llama-3.1-8b-instant"`
+
+Example `.env` (do not commit):
+
+```dotenv
+SECRET_KEY="replace_me_with_a_secure_random_value"
+DEBUG=True
+SESSION_COOKIE_NAME="IRWA_SEARCH_ENGINE"
+DATA_FILE_PATH="data/processed_fashion.json"
+
+GROQ_API_KEY="gsk_your_api_key_here"
+GROQ_MODEL="llama-3.1-8b-instant"
+```
+
+Security notes:
+
+- Never commit `.env` to source control. If you accidentally committed secrets, rotate them immediately and remove the file from the repository history (see the project issues or use `git filter-repo` / BFG). You can stop tracking the file locally with:
+
+```bash
+git rm --cached .env
+echo ".env" >> .gitignore
+git add .gitignore
+git commit -m "Remove .env from repo and add to .gitignore"
+```
+
+Restart the Flask app after editing `.env` so changes are picked up.
 
 ### Part 1: Data Preprocessing & Exploratory Data Analysis
 
