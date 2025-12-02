@@ -5,10 +5,23 @@
         <p>&nbsp;</p>
         <p>&nbsp;</p>
         <p>&nbsp;</p>
-        <form class="d-flex" method="POST" onSubmit='return validate();' action="/search">
-            <input class="form-control me-2" name="search-query" type="search" placeholder="Search" aria-label="Search"
-                   autofocus="autofocus">
-            <button class="btn btn-primary" type="submit" onclick='this.form.submit();'>Search</button>
+        <form class="w-100" method="POST" onSubmit='return validate();' action="/search">
+            <div class="row g-2 justify-content-center">
+                <div class="col-md-6">
+                    <input class="form-control" name="search-query" type="search" placeholder="Search" aria-label="Search"
+                           autofocus="autofocus" value="{{ last_search_query or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="ranking-algorithm" aria-label="Ranking algorithm selector">
+                        <option value="tfidf" {% if selected_algorithm == 'tfidf' %}selected{% endif %}>TF-IDF + Cosine</option>
+                        <option value="bm25" {% if selected_algorithm == 'bm25' %}selected{% endif %}>BM25</option>
+                        <option value="custom" {% if selected_algorithm == 'custom' %}selected{% endif %}>Custom Score</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </div>
             <input name="upf-irwa-hidden" type="hidden" value="123">
         </form>
         <p>&nbsp;</p>

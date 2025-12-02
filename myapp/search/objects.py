@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 import re
 
@@ -12,7 +12,7 @@ class Document(BaseModel):
     brand: Optional[str] = None
     category: Optional[str] = None
     sub_category: Optional[str] = None
-    product_details: Optional[Dict[str, Any]] = None
+    product_details: Optional[Union[Dict[str, Any], str]] = None
     seller: Optional[str] = None
     out_of_stock: bool = False
     selling_price: Optional[float] = None

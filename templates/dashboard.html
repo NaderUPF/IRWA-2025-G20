@@ -1,31 +1,295 @@
-{% extends "base.html" %}
-{% block page_title %}{{ page_title }}{% endblock %}
-
+{% extends "base.html" %} {% block page_title %}{{ page_title }}{% endblock %}
 {% block header %}
-    <!-- Next tag loads Charts.js https://www.chartjs.org/docs/latest/ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.min.js"
-            integrity="sha512-tMabqarPtykgDtdtSqCL3uLVM0gS1ZkUAVhRFu1vSEFgvB73niFQWJuvviDyBGBH22Lcau4rHB5p2K2T0Xvr6Q=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.min.js"
+  integrity="sha512-tMabqarPtykgDtdtSqCL3uLVM0gS1ZkUAVhRFu1vSEFgvB73niFQWJuvviDyBGBH22Lcau4rHB5p2K2T0Xvr6Q=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+{% endblock %} {% block content %}
+<div
+  class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-3"
+>
+  <div>
+    <h2 class="mb-1">How people use the search experience</h2>
+    <p class="text-muted mb-0">
+      This dashboard tracks the funnel from query to click, highlights device
+      mix, and documents which algorithms are being exercised so we can improve
+      recall and UX.
+    </p>
+  </div>
+  <a class="btn btn-outline-primary" href="/analytics/export/csv"
+    >Download CSV Export</a
+  >
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Queries</h6>
+        <h3 class="mb-1">{{ totals.queries }}</h3>
+        <p class="text-muted small mb-0">
+          Searches captured during this session window.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Click-through</h6>
+        <h3 class="mb-1">
+          {% if ctr is not none %}{{ (ctr * 100)|round(1) }}%{% else %}—{% endif
+          %}
+        </h3>
+        <p class="text-muted small mb-0">
+          Clicks ÷ queries. Indicates how relevant the results feel.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Avg dwell</h6>
+        <h3 class="mb-1">
+          {% if avg_dwell is not none %}{{ (avg_dwell / 1000)|round(1) }}s{%
+          else %}—{% endif %}
+        </h3>
+        <p class="text-muted small mb-0">
+          Time on a product page before returning to the SERP.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Active sessions</h6>
+        <h3 class="mb-1">{{ totals.sessions }}</h3>
+        <p class="text-muted small mb-0">
+          Unique browsers issuing queries in this dataset.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Usage takeaways</h5>
+    <ul class="mb-0">
+      {% for highlight in usage_highlights %}
+      <li>{{ highlight }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="card-title mb-0">Search volume (7 day window)</h5>
+          <span class="badge bg-light text-dark">Key indicator</span>
+        </div>
+        {% if volume_series %}
+        <canvas id="searchVolumeChart" height="180"></canvas>
+        {% else %}
+        <p class="text-muted mb-0">No searches logged for this time window.</p>
+        {% endif %}
+        <p class="text-muted small mt-3">
+          Shows how many searches we handle per day. Spikes help correlate
+          marketing pushes with demand.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="card-title mb-0">Ranking algorithm mix</h5>
+          <span class="badge bg-light text-dark">Report</span>
+        </div>
+        {% if algo_mix %}
+        <canvas id="algoMixChart" height="180"></canvas>
+        {% else %}
+        <p class="text-muted mb-0">No algorithm selections recorded yet.</p>
+        {% endif %}
+        <p class="text-muted small mt-3">
+          Helps validate which ranking strategies users try when troubleshooting
+          precision vs. recall.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Click distribution by rank</h5>
+        {% if click_distribution %}
+        <canvas id="rankChart" height="180"></canvas>
+        {% else %}
+        <p class="text-muted mb-0">No clicks logged yet.</p>
+        {% endif %}
+        <p class="text-muted small mt-3">
+          Measures how deep users scroll before finding a relevant product.
+          Lower rank clicks hint at recall issues.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Visitor devices</h5>
+        <div class="row">
+          <div class="col-sm-6">
+            <h6>Browsers</h6>
+            <ul class="list-unstyled mb-3">
+              {% for name, count in browser_stats.items() %}
+              <li>{{ name }} — {{ count }}</li>
+              {% else %}
+              <li class="text-muted">No data</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="col-sm-6">
+            <h6>Operating systems</h6>
+            <ul class="list-unstyled mb-0">
+              {% for name, count in os_stats.items() %}
+              <li>{{ name }} — {{ count }}</li>
+              {% else %}
+              <li class="text-muted">No data</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        <p class="text-muted small mt-3">
+          Device mix confirms which environments to prioritize for QA and
+          performance tuning.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Top queries</h5>
+        <ol class="mb-0">
+          {% for q in top_queries %}
+          <li>
+            {{ q.query }} <span class="text-muted">({{ q.count }}x)</span>
+          </li>
+          {% else %}
+          <p class="text-muted">No searches yet.</p>
+          {% endfor %}
+        </ol>
+        <p class="text-muted small mt-3">
+          Use this list to curate synonyms, boosts, or featured products for the
+          most common intents.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Recently clicked documents</h5>
+        <ul class="list-unstyled mb-0">
+          {% for doc in visited_docs[:10] %}
+          <li class="mb-3">
+            <div class="d-flex justify-content-between">
+              <strong>{{ doc.doc_id }}</strong>
+              <span class="badge bg-primary">{{ doc.counter }} clicks</span>
+            </div>
+            <div class="text-muted small">
+              {{ (doc.description or 'No description available')[:100] }}{% if
+              doc.description and doc.description|length > 100 %}...{% endif %}
+            </div>
+          </li>
+          {% else %}
+          <p class="text-muted">No click data captured.</p>
+          {% endfor %}
+        </ul>
+        <p class="text-muted small mt-3">
+          Highlights inventory that resonates with shoppers so merchandisers can
+          audit copy or pricing.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const volumeSeries = {{ volume_series|tojson }};
+  const algoMix = {{ algo_mix|tojson }};
+  const rankDistribution = {{ click_distribution|tojson }};
+
+  const volumeCtx = document.getElementById('searchVolumeChart');
+  if (volumeCtx && volumeSeries.length) {
+    new Chart(volumeCtx, {
+      type: 'line',
+      data: {
+        labels: volumeSeries.map(item => item.date),
+        datasets: [{
+          label: 'Queries',
+          data: volumeSeries.map(item => item.count),
+          fill: false,
+          borderColor: '#0d6efd',
+          tension: 0.3,
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+
+  const algoCtx = document.getElementById('algoMixChart');
+  if (algoCtx && Object.keys(algoMix).length) {
+    new Chart(algoCtx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(algoMix),
+        datasets: [{
+          data: Object.values(algoMix),
+          backgroundColor: ['#0d6efd', '#6f42c1', '#20c997', '#fd7e14'],
+        }],
+      },
+      options: {
+        plugins: { legend: { position: 'bottom' } },
+      },
+    });
+  }
+
+  const rankCtx = document.getElementById('rankChart');
+  if (rankCtx && Object.keys(rankDistribution).length) {
+    new Chart(rankCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(rankDistribution),
+        datasets: [{
+          label: 'Clicks',
+          data: Object.values(rankDistribution),
+          backgroundColor: '#198754',
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+</script>
 {% endblock %}
-
-{% block content %}
-
-    <!--
-    Examples of what to show in Dashboard:
-
-    - Ranking of visited documents (from results page)
-    - Visitor's preferred browsers
-    - Visitor's city (from IP)
-    - preferred queries ranking
-    - preferred terms
-    - etc.
-
-    -->
-
-    <h3>Dashboard</h3>
-    <iframe src="/plot_number_of_views" width="600" height="400" style="border: none;"></iframe>
-
-
-{% endblock %}
-
-

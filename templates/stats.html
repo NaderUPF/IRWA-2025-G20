@@ -1,15 +1,116 @@
-{% extends "base.html" %}
-{% block page_title %}{{ page_title }}{% endblock %}
-{% block content %}
-    <h2>Quick Stats</h2>
-    <h4>Clicked docs:</h4>
+{% extends "base.html" %} {% block page_title %}Analytics{% endblock %} {% block
+content %}
+<h2 class="mb-4">Usage Analytics</h2>
 
-    {% for doc in clicks_data %}
-        <div class="pb-3">
-            <div class="">
-                <span class="text-dark"> ({{ doc.count }} visits) </span> — id: {{ doc.pid }} — {{ doc.title }} - {{ doc.description }}
-            </div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted">Queries</h6>
+        <h3 class="mb-0">{{ totals.queries }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted">Clicks</h6>
+        <h3 class="mb-0">{{ totals.clicks }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted">Active Sessions</h6>
+        <h3 class="mb-0">{{ totals.sessions }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if avg_dwell_ms %}
+<p class="text-muted">
+  Average dwell time: {{ (avg_dwell_ms / 1000)|round(2) }} seconds
+</p>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <h4>Top Queries</h4>
+    <ol>
+      {% for q in top_queries %}
+      <li>{{ q.query }} <span class="text-muted">({{ q.count }}x)</span></li>
+      {% else %}
+      <p class="text-muted">No queries logged yet.</p>
+      {% endfor %}
+    </ol>
+  </div>
+  <div class="col-md-6">
+    <h4>Top Clicked Documents</h4>
+    <ul class="list-unstyled">
+      {% for doc in clicks_data %}
+      <li class="mb-2">
+        <strong>{{ doc.title }}</strong>
+        <div class="text-muted small">
+          PID {{ doc.pid }} — {{ doc.count }} visits
         </div>
-        <hr>
-    {% endfor %}
+      </li>
+      {% else %}
+      <p class="text-muted">No document clicks recorded.</p>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="row g-4 mt-3">
+  <div class="col-md-6">
+    <h4>Click Distribution by Rank</h4>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Clicks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rank, count in click_distribution.items() %}
+        <tr>
+          <td>{{ rank }}</td>
+          <td>{{ count }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="2" class="text-muted">No data</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="col-md-6">
+    <h4>Visitor Devices</h4>
+    <div class="row">
+      <div class="col-sm-6">
+        <h6>Browsers</h6>
+        <ul class="list-unstyled">
+          {% for name, count in browser_stats.items() %}
+          <li>{{ name }} — {{ count }}</li>
+          {% else %}
+          <li class="text-muted">No data</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="col-sm-6">
+        <h6>Operating Systems</h6>
+        <ul class="list-unstyled">
+          {% for name, count in os_stats.items() %}
+          <li>{{ name }} — {{ count }}</li>
+          {% else %}
+          <li class="text-muted">No data</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
