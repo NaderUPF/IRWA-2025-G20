@@ -55,7 +55,7 @@ def sentence2vec(tokens, model):
     """
     vectors = []
     weights = []
-    
+     
     # Add sentence boundaries
     tokens_with_boundary = ['<s>'] + tokens + ['</s>']
     

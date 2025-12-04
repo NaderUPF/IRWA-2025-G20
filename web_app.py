@@ -64,7 +64,23 @@ def _render_csv(fieldnames, rows):
 # load documents corpus into memory.
 full_path = os.path.realpath(__file__)
 path, filename = os.path.split(full_path)
-file_path = path + "/" + os.getenv("DATA_FILE_PATH")
+
+# Resolve data file path with sensible fallbacks. Accept absolute paths or
+# paths relative to the repository root (where `web_app.py` lives).
+data_env = os.getenv("PROCESSED_DATA_PATH") or os.getenv("DATA_FILE_PATH") or "data/processed_fashion.json"
+if os.path.isabs(data_env):
+    file_path = data_env
+else:
+    file_path = os.path.join(path, data_env)
+
+if not os.path.exists(file_path):
+    msg = (
+        f"Processed data file not found: {file_path}\n"
+        "Please set `PROCESSED_DATA_PATH` or `DATA_FILE_PATH` in your .env (absolute or relative to project root),\n"
+        "or place `processed_fashion.json` under the `data/` folder. Example: DATA_FILE_PATH=data/processed_fashion.json"
+    )
+    raise FileNotFoundError(msg)
+
 corpus = load_corpus(file_path)
 # Log first element of corpus to verify it loaded correctly:
 print("\nCorpus is loaded... \n First element:\n", list(corpus.values())[0])

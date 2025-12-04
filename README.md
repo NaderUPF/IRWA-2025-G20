@@ -408,10 +408,35 @@ Ranking Overlap Analysis (Top 5):
 - `project_progress/part_3/word2vec_ranking.py` - Standalone Word2Vec ranking script (simple averaging)
 - `project_progress/part_3/sentence2vec_ranking.py` - Standalone Sentence2Vec ranking script (weighted averaging)
 
-## Search Engine Features
+### Part 4: Search Engine Features
 
-To use the search engine with different ranking algorithms:
+Part 4 provides the full interactive web application that integrates the search engine, RAG summaries, and analytics reporting. The site exposes multiple ranking algorithms, a per-query RAG summary, a document detail view and a dashboard with KPI cards and charts.
 
-1. Start the web application: `python web_app.py`
-2. Open your browser to: `http://127.0.0.1:8088/`
-3. Available ranking algorithms can be selected from the dropdown menu in the search interface
+Quick start (run the webapp):
+
+1. Ensure your `.env` contains the required variables (see the "Environment variables (.env)" section above).
+2. Install dependencies and start the server:
+
+```bash
+pip install -r requirements.txt
+python web_app.py
+```
+
+3. Open your browser to: `http://127.0.0.1:8088/` or the opened port the terminal indicates and use the dropdown to select a ranking algorithm.
+
+Important pages and endpoints:
+
+- `/` — Home and search form
+- `/search` — Handles search submissions and renders `results.html` with RAG summary
+- `/doc_details?pid=<PID>&search_id=<QUERY_ID>` — Detailed document page and click logging
+- `/dashboard` — Analytics dashboard with KPI cards, charts and explanatory copy
+- `/stats` — Simplified analytics summary
+- `/analytics/export` — JSON export of analytics data
+- `/analytics/export/csv` — CSV or ZIP export for graders (fact_query, fact_click, dim_session)
+
+Features implemented:
+
+- Multiple ranking strategies: TF-IDF, BM25, Custom Score (text + quality + value), Word2Vec, Sentence2Vec
+- RAG generation using Groq (controlled by `GROQ_API_KEY` / `GROQ_MODEL`) with metadata-rich prompts
+- Structured analytics (`QueryEvent`, `ClickEvent`, `SessionContext`) and KPIs (CTR, avg dwell, algorithm mix)
+- Interactive dashboard with Chart.js visualizations and downloadable CSV exports for grading
