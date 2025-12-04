@@ -13,7 +13,7 @@ from myapp.analytics.analytics_data import AnalyticsData, ClickedDoc
 from myapp.search.load_corpus import load_corpus
 from myapp.search.objects import Document, StatsDocument
 from myapp.search.search_engine import SearchEngine
-from myapp.generation.rag import RAGGenerator
+from myapp.generation.rag1 import RAGGenerator
 from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env
 

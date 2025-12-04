@@ -426,17 +426,18 @@ python web_app.py
 
 Important pages and endpoints:
 
-- `/` — Home and search form
-- `/search` — Handles search submissions and renders `results.html` with RAG summary
-- `/doc_details?pid=<PID>&search_id=<QUERY_ID>` — Detailed document page and click logging
-- `/dashboard` — Analytics dashboard with KPI cards, charts and explanatory copy
-- `/stats` — Simplified analytics summary
-- `/analytics/export` — JSON export of analytics data
-- `/analytics/export/csv` — CSV or ZIP export for graders (fact_query, fact_click, dim_session)
-
 Features implemented:
 
-- Multiple ranking strategies: TF-IDF, BM25, Custom Score (text + quality + value), Word2Vec, Sentence2Vec
-- RAG generation using Groq (controlled by `GROQ_API_KEY` / `GROQ_MODEL`) with metadata-rich prompts
-- Structured analytics (`QueryEvent`, `ClickEvent`, `SessionContext`) and KPIs (CTR, avg dwell, algorithm mix)
-- Interactive dashboard with Chart.js visualizations and downloadable CSV exports for grading
+#### RAG improvements (BONUS POINT)
+
+`myapp/generation/rag.py` implements multiple improvements to make RAG outputs safer, more reliable and less expensive:
+
+- **Richer, compact metadata:** `_format_results` sends price, discount, rating, stock and a truncated description so the model is grounded on concise, consistent evidence.
+- **Duplicate removal:** `_dedupe_by_pid` prevents repeated products from appearing in the prompt, reducing noise and prompt tokens.
+- **Intelligent reranking:** `_rerank_results` applies a heuristic score (rating, price, stock) to surface higher-quality candidates before calling the LLM.
+- **Early-stop to avoid pointless LLM calls:** `MIN_QUERY_LEN` and empty-hit checks short-circuit low-quality or empty queries with a canonical "There are no good products..." response.
+- **API retries and robust error handling:** `_call_with_retry` implements retries with backoff; failures return a safe `DEFAULT_ANSWER` and produce diagnostic logs for debugging.
+- **Stronger anti-hallucination instructions:** `PROMPT_TEMPLATE` explicitly instructs the model to "Use ONLY the metadata", to avoid inventing attributes and to output "Unknown" when data is missing.
+- **Client validation & diagnostics:** the generator validates `GROQ_API_KEY` and caches the Groq client to avoid repeated initialization overhead.
+
+These changes reduce hallucination risk, lower token usage by the model, and provide safer fallback behavior when the API is unavailable or inputs are insufficient. Consider requiring a JSON output format in the prompt if you need deterministic/parsable responses for downstream UI components.
