@@ -1,27 +1,103 @@
-{% extends "base.html" %}
-{% block page_title %}{{ page_title }}{% endblock %}
+{% extends "base.html" %} {% block page_title %}{{ page_title }}{% endblock %}
 {% block content %}
-    Found <strong>{{ found_counter }}</strong> results...
-    <hr>
-    {% if rag_response %}
-        <div class="mb-4 p-3" style="border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
-            <h5>AI-Generated Summary:</h5>
-            <p>{{ rag_response }}</p>
+<div class="d-flex justify-content-between align-items-center">
+  <div>
+    Showing <strong>{{ found_counter }}</strong> results for
+    <em>{{ search_query }}</em>
+  </div>
+  <span class="badge bg-secondary"
+    >Algorithm: {{ selected_algorithm|upper }}</span
+  >
+</div>
+<hr />
+{% if rag_response %}
+<div
+  class="mb-4 p-3"
+  style="border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9"
+>
+  <h5>AI-Generated Summary</h5>
+  <p class="mb-0">{{ rag_response }}</p>
+</div>
+{% endif %} {% if results_list %} {% for item in results_list %}
+<div class="card mb-3">
+  <div class="card-body">
+    <div
+      class="d-flex justify-content-between align-items-start gap-3 flex-wrap"
+    >
+      <div>
+        <h5 class="card-title mb-1">
+          <a
+            href="{{ item.product_url or item.url }}"
+            target="_blank"
+            rel="noopener"
+          >
+            {{ item.title }}
+          </a>
+        </h5>
+        <p class="card-text text-muted small mb-2">
+          {% if item.brand %}Brand: {{ item.brand }} · {% endif %} {% if
+          item.category %}Category: {{ item.category }}{% endif %} {% if
+          item.sub_category %} / {{ item.sub_category }}{% endif %}
+        </p>
+        <div class="d-flex gap-2">
+          {% if item.out_of_stock %}
+          <span class="badge bg-danger">Out of stock</span>
+          {% else %}
+          <span class="badge bg-success">In stock</span>
+          {% endif %} {% if item.discount and item.discount > 0 %}
+          <span class="badge bg-warning text-dark"
+            >{{ '%.0f'|format(item.discount) }}% off</span
+          >
+          {% endif %}
         </div>
-    {% endif %}
-    <hr>
-    {% for item in results_list %}
-        <div class="pb-3">
-            <div class="doc-title">
-                <a href="{{ item.url }}">{{ item.title }}...
-                </a>
-            </div>
-            <div class="doc-desc">
-                {{ item.doc_date }} — {{ item.description }}
-            </div>
-
-        </div>
-
-    {% endfor %}
-{% endblock %}
-
+      </div>
+      <span class="badge bg-light text-dark"
+        >Score: {{ '%.3f'|format(item.ranking or 0) }}</span
+      >
+    </div>
+    <p class="card-text mt-3">{{ item.description }}</p>
+    <div class="row text-muted small">
+      <div class="col-md-3">
+        <strong>Price:</strong>
+        {% if item.selling_price is not none %} {% if item.discount and
+        item.discount > 0 and item.actual_price %}
+        <span class="text-muted text-decoration-line-through"
+          >${{ '%.2f'|format(item.actual_price) }}</span
+        >
+        {% endif %}
+        <span class="fw-semibold text-dark"
+          >${{ '%.2f'|format(item.selling_price) }}</span
+        >
+        {% else %} N/A {% endif %}
+      </div>
+      <div class="col-md-3">
+        <strong>Discount:</strong>
+        {% if item.discount is not none %}{{ '%.0f'|format(item.discount) }}%{%
+        else %}N/A{% endif %}
+      </div>
+      <div class="col-md-3">
+        <strong>Rating:</strong>
+        {% if item.average_rating is not none %} {{
+        '%.1f'|format(item.average_rating) }}/5 {% else %} N/A {% endif %}
+      </div>
+      <div class="col-md-3"><strong>PID:</strong> {{ item.pid }}</div>
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <a class="btn btn-outline-primary btn-sm" href="{{ item.url }}"
+        >View details</a
+      >
+      {% if item.product_url %}
+      <a
+        class="btn btn-outline-secondary btn-sm"
+        href="{{ item.product_url }}"
+        target="_blank"
+        rel="noopener"
+        >Visit store</a
+      >
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %} {% else %}
+<p>No documents found for this query.</p>
+{% endif %} {% endblock %}

@@ -1,18 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Document Detail - IRWA Search Engine</title>
-</head>
-<body>
-<div><a href="/" >Home</a></div>
-<div><a href="/stats" >Stats</a></div>
-<div><a href="/dashboard" >Dashboard</a></div>
-<h1>Document Detail Page</h1>
-<p>This is a placeholder for document details.</p>
-<p>Here you can display more information about the document.</p>
-<p>For example, you might show the full text of the document, metadata, or other relevant details.</p>
-<p>You can also include links to related documents or resources.</p>
-<p>Feel free to customize this page to fit the needs of your application.</p>
-</body>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="mb-3">
+        <a href="/" class="btn btn-link">&larr; Back to search</a>
+        <a href="/stats" class="btn btn-link">Stats</a>
+        <a href="/dashboard" class="btn btn-link">Dashboard</a>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+      {% elif document %}
+      <h1 class="mb-3">{{ document.title }}</h1>
+
+      {% if document.brand or document.category %}
+      <p class="text-muted">
+        {% if document.brand %}Brand: {{ document.brand }} · {% endif %} {% if
+        document.category %}Category: {{ document.category }}{% endif %} {% if
+        document.sub_category %} / {{ document.sub_category }}{% endif %}
+      </p>
+      {% endif %}
+
+      <div class="mb-3"><strong>Product ID:</strong> {{ document.pid }}</div>
+
+      {% if document.url %}
+      <p>
+        <a
+          class="btn btn-primary"
+          href="{{ document.url }}"
+          target="_blank"
+          rel="noopener"
+          >View on store</a
+        >
+      </p>
+      {% endif %} {% if document.description %}
+      <h4>Description</h4>
+      <p>{{ document.description }}</p>
+      {% endif %}
+
+      <h4>Pricing & Availability</h4>
+      <ul>
+        <li>
+          Selling price: {% if document.selling_price is not none %}${{
+          '%.2f'|format(document.selling_price) }}{% else %}N/A{% endif %}
+        </li>
+        <li>
+          Actual price: {% if document.actual_price is not none %}${{
+          '%.2f'|format(document.actual_price) }}{% else %}N/A{% endif %}
+        </li>
+        <li>
+          Discount: {% if document.discount is not none %}{{ document.discount
+          }}%{% else %}N/A{% endif %}
+        </li>
+        <li>
+          Availability: {% if document.out_of_stock %}Out of stock{% else %}In
+          stock{% endif %}
+        </li>
+      </ul>
+
+      <h4>Quality</h4>
+      <ul>
+        <li>
+          Average rating: {% if document.average_rating is not none %}{{
+          document.average_rating }}/5{% else %}N/A{% endif %}
+        </li>
+        <li>Seller: {{ document.seller or 'N/A' }}</li>
+      </ul>
+
+      {% if document.product_details %}
+      <h4>Product details</h4>
+      {% if document.product_details is string %}
+      <p>{{ document.product_details }}</p>
+      {% else %}
+      <dl>
+        {% for key, value in document.product_details.items() %}
+        <dt>{{ key|replace('_', ' ')|title }}</dt>
+        <dd>{{ value }}</dd>
+        {% endfor %}
+      </dl>
+      {% endif %} {% endif %} {% if document.images %}
+      <h4>Images</h4>
+      <div class="row">
+        {% for image_url in document.images %}
+        <div class="col-md-4 mb-3">
+          <img
+            src="{{ image_url }}"
+            class="img-fluid rounded"
+            alt="Product image"
+          />
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% else %}
+      <p>No document selected.</p>
+      {% endif %}
+    </div>
+  </body>
 </html>

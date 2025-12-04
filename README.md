@@ -106,7 +106,43 @@ Enjoy!
 0. Put the data file `fashion_products_dataset.json` in the `data` folder. It will be provided to you by the instructor.
 1. As for Parts 1, 2, and 3 of the project, please use the `project_progress` folder to store your solutions. Each part should contain `.pdf` file with your report and `.ipynb` (Jupyter Notebook) file with your code for solution and `README.md` with explanation of the content and instructions for results reproduction.
 2. For the Part 4, of the project, you should build a web application using Flask that allows users to search through a collection of documents and view analytics about their searches. You should work mailnly in the `web_app.py` file `myapp` and `templates` folders. Feel free to change any code or add new files as needed. The provided code is just a starting point to help you get started quickly.
-3. Make sure to update the `.env` file with your Groq API key (can be found [here](https://groq.com/), the free version is more than enough for our purposes) and any other necessary configurations. IMPORTANT: Do not share your `.env` file publicly as it contains sensitive information. It is included in `.gitignore` to prevent accidental commits. (It should never be included in the repos and appear here only for demonstration purposes).
+3. Make sure to update the `.env` file with your Groq API key (can be found [here](https://groq.com/), the free version is more than enough for our purposes) and any other necessary configurations. IMPORTANT: Do not share your `.env` file publicly as it contains sensitive information. It is included in `.gitignore` to prevent accidental commits. (It should never be included in the repo and appears here only for demonstration purposes).
+
+## Environment variables (.env)
+
+Create a file named `.env` in the project root with the following keys. These are read by `web_app.py`, the search engine loader and the RAG generator:
+
+- `SECRET_KEY`: Flask secret key used to sign session cookies. Example: `SECRET_KEY="a-very-secret-value"`
+- `DEBUG`: Optional (True/False). Example: `DEBUG=True`
+- `SESSION_COOKIE_NAME`: Optional name for the Flask session cookie. Example: `SESSION_COOKIE_NAME="IRWA_SEARCH_ENGINE"`
+- `DATA_FILE_PATH` or `PROCESSED_DATA_PATH`: Path to the processed corpus JSON. Example: `DATA_FILE_PATH="data/processed_fashion.json"`
+- `GROQ_API_KEY`: (required for RAG) Your Groq API key. Example: `GROQ*API_KEY="gsk*..."
+- `GROQ_MODEL`: (optional) Model name to use with Groq. Example: `GROQ_MODEL="llama-3.1-8b-instant"`
+
+Example `.env` (do not commit):
+
+```dotenv
+SECRET_KEY="replace_me_with_a_secure_random_value"
+DEBUG=True
+SESSION_COOKIE_NAME="IRWA_SEARCH_ENGINE"
+DATA_FILE_PATH="data/processed_fashion.json"
+
+GROQ_API_KEY="gsk_your_api_key_here"
+GROQ_MODEL="llama-3.1-8b-instant"
+```
+
+Security notes:
+
+- Never commit `.env` to source control. If you accidentally committed secrets, rotate them immediately and remove the file from the repository history (see the project issues or use `git filter-repo` / BFG). You can stop tracking the file locally with:
+
+```bash
+git rm --cached .env
+echo ".env" >> .gitignore
+git add .gitignore
+git commit -m "Remove .env from repo and add to .gitignore"
+```
+
+Restart the Flask app after editing `.env` so changes are picked up.
 
 ### Part 1: Data Preprocessing & Exploratory Data Analysis
 
@@ -372,10 +408,36 @@ Ranking Overlap Analysis (Top 5):
 - `project_progress/part_3/word2vec_ranking.py` - Standalone Word2Vec ranking script (simple averaging)
 - `project_progress/part_3/sentence2vec_ranking.py` - Standalone Sentence2Vec ranking script (weighted averaging)
 
-## Search Engine Features
+### Part 4: Search Engine Features
 
-To use the search engine with different ranking algorithms:
+Part 4 provides the full interactive web application that integrates the search engine, RAG summaries, and analytics reporting. The site exposes multiple ranking algorithms, a per-query RAG summary, a document detail view and a dashboard with KPI cards and charts.
 
-1. Start the web application: `python web_app.py`
-2. Open your browser to: `http://127.0.0.1:8088/`
-3. Available ranking algorithms can be selected from the dropdown menu in the search interface
+Quick start (run the webapp):
+
+1. Ensure your `.env` contains the required variables (see the "Environment variables (.env)" section above).
+2. Install dependencies and start the server:
+
+```bash
+pip install -r requirements.txt
+python web_app.py
+```
+
+3. Open your browser to: `http://127.0.0.1:8088/` or the opened port the terminal indicates and use the dropdown to select a ranking algorithm.
+
+Important pages and endpoints:
+
+Features implemented:
+
+#### RAG improvements (BONUS POINT)
+
+`myapp/generation/rag.py` implements multiple improvements to make RAG outputs safer, more reliable and less expensive:
+
+- **Richer, compact metadata:** `_format_results` sends price, discount, rating, stock and a truncated description so the model is grounded on concise, consistent evidence.
+- **Duplicate removal:** `_dedupe_by_pid` prevents repeated products from appearing in the prompt, reducing noise and prompt tokens.
+- **Intelligent reranking:** `_rerank_results` applies a heuristic score (rating, price, stock) to surface higher-quality candidates before calling the LLM.
+- **Early-stop to avoid pointless LLM calls:** `MIN_QUERY_LEN` and empty-hit checks short-circuit low-quality or empty queries with a canonical "There are no good products..." response.
+- **API retries and robust error handling:** `_call_with_retry` implements retries with backoff; failures return a safe `DEFAULT_ANSWER` and produce diagnostic logs for debugging.
+- **Stronger anti-hallucination instructions:** `PROMPT_TEMPLATE` explicitly instructs the model to "Use ONLY the metadata", to avoid inventing attributes and to output "Unknown" when data is missing.
+- **Client validation & diagnostics:** the generator validates `GROQ_API_KEY` and caches the Groq client to avoid repeated initialization overhead.
+
+These changes reduce hallucination risk, lower token usage by the model, and provide safer fallback behavior when the API is unavailable or inputs are insufficient. Consider requiring a JSON output format in the prompt if you need deterministic/parsable responses for downstream UI components.
